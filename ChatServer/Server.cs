@@ -6,6 +6,7 @@ namespace ChatServer
     public class Server
     {
         private readonly TcpListener _server;
+        private readonly List<ClientHandler> _clientHandlers = new();
 
         public Server(string ipAddress, short port)
         {
@@ -52,6 +53,10 @@ namespace ChatServer
                     Console.WriteLine("Client connected");
                     ClientHandler clientHandler = new(client);
 
+                    BroadcastMessage("New user joined the chat");
+
+                    _clientHandlers.Add(clientHandler);
+
                     Task.Run(() =>
                     {
                         clientHandler.Listen();
@@ -61,6 +66,14 @@ namespace ChatServer
             catch (SocketException ex)
             {
                 Console.WriteLine("Error accepting client: " + ex.Message);
+            }
+        }
+
+        private async void BroadcastMessage(string message)
+        {
+            foreach (ClientHandler handler in _clientHandlers)
+            {
+                await handler.BroadcastMessage(new Message() { Data = message });
             }
         }
     }

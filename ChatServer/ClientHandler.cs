@@ -6,6 +6,7 @@ namespace ChatServer
     {
         private readonly TcpClient _client;
         private readonly NetworkStream _stream;
+        public string Username { get; set; } = "";
 
         public ClientHandler(TcpClient client)
         {
@@ -13,19 +14,29 @@ namespace ChatServer
             _stream = client.GetStream();
         }
 
-        public void Listen()
+        public async void Listen()
         {
+            bool firstTime = true;
             byte[] bytes = new byte[1024];
-            string? message;
+            Message message;
             int count;
 
             try
             {
                 while ((count = _stream.Read(bytes, 0, bytes.Length)) != 0)
                 {
-                    message = System.Text.Encoding.ASCII.GetString(bytes, 0, count);
-                    Console.WriteLine("Message from client: " + message);
-                    Reply(message);
+                    if (firstTime)
+                    {
+                        message = Serializer.Deserialize(bytes);
+                        Username = message.Data;
+                        firstTime = false;
+                    }
+                    else
+                    {
+                        message = Serializer.Deserialize(bytes);
+                        Console.WriteLine($"Message from client ({Username}): " + message.Data);
+                        await BroadcastMessage(message);
+                    }
                 }
             }
             catch (Exception ex)
@@ -41,10 +52,17 @@ namespace ChatServer
             Console.WriteLine("Client disconnected");
         }
 
-        private void Reply(string message)
+        public async Task BroadcastMessage(Message message)
         {
-            byte[] replyMessage = System.Text.Encoding.ASCII.GetBytes(message);
-            _stream.Write(replyMessage, 0, replyMessage.Length);
+            try
+            {
+                byte[] replyMessage = Serializer.Serialize(message);
+                await _stream.WriteAsync(replyMessage, 0, replyMessage.Length);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in BroadcastMessage: " + ex.Message);
+            }
         }
     }
 }
