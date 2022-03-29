@@ -51,16 +51,13 @@ namespace ChatServer
                 {
                     TcpClient client = _server.AcceptTcpClient();
                     Console.WriteLine("Client connected");
-                    ClientHandler clientHandler = new(client);
+                    ClientHandler clientHandler = new(client, BroadcastMessage);
 
-                    BroadcastMessage("New user joined the chat");
+                    BroadcastMessage(Message.MessageType.Info, $"{clientHandler.Username} joined the chat");
 
                     _clientHandlers.Add(clientHandler);
 
-                    Task.Run(() =>
-                    {
-                        clientHandler.Listen();
-                    });
+                    BroadcastOnlineUsers();
                 }
             }
             catch (SocketException ex)
@@ -69,11 +66,43 @@ namespace ChatServer
             }
         }
 
-        private async void BroadcastMessage(string message)
+        private async void BroadcastMessage(Message.MessageType messageType, string message, string author = "")
         {
-            foreach (ClientHandler handler in _clientHandlers)
+            if (_clientHandlers.Count > 0)
             {
-                await handler.BroadcastMessage(new Message() { Data = message });
+                Message msg = new();
+                msg.Type = messageType;
+                msg.Data.Add(message);
+
+                foreach (ClientHandler handler in _clientHandlers)
+                {
+                    if (handler.Username != author)
+                    {
+                        await handler.BroadcastMessage(msg);
+                    }
+                }
+            }
+        }
+
+        private async void BroadcastOnlineUsers()
+        {
+            if (_clientHandlers.Count > 0)
+            {
+                List<string> message = new List<string>();
+
+                foreach (ClientHandler handler in _clientHandlers)
+                {
+                    message.Add(handler.Username);
+                }
+
+                Message msg = new();
+                msg.Type = Message.MessageType.UserList;
+                msg.Data = message;
+
+                foreach (ClientHandler handler in _clientHandlers)
+                {
+                    await handler.BroadcastMessage(msg);
+                }
             }
         }
     }
