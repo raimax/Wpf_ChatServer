@@ -32,7 +32,7 @@ namespace ChatServer
 
         public async void Listen()
         {
-            byte[] bytes = new byte[1024];
+            byte[] bytes = new byte[1024 * 1024];
             Message message;
             int count;
 
