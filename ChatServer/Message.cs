@@ -7,9 +7,12 @@
         {
             Message,
             UserList,
-            Info
+            Info,
+            File,
+            ReceiveFile
         }
 
         public List<string> Data { get; set; } = new List<string>();
+        public byte[] File { get; set; } = new byte[] { };
     }
 }

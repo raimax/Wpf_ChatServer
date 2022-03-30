@@ -11,6 +11,7 @@ namespace ChatServer
         public Server(string ipAddress, short port)
         {
             _server = new TcpListener(IPAddress.Parse(ipAddress), port);
+
         }
 
         public void StartConnection()
@@ -51,7 +52,7 @@ namespace ChatServer
                 {
                     TcpClient client = _server.AcceptTcpClient();
                     Console.WriteLine("Client connected");
-                    ClientHandler clientHandler = new(client, BroadcastMessage, RemoveClientHandler);
+                    ClientHandler clientHandler = new(client, BroadcastMessage, RemoveClientHandler, BroadcastFile);
 
                     BroadcastMessage(Message.MessageType.Info, $"{clientHandler.Username} joined the chat");
 
@@ -95,13 +96,28 @@ namespace ChatServer
                     message.Add(handler.Username);
                 }
 
-                Message msg = new();
-                msg.Type = Message.MessageType.UserList;
-                msg.Data = message;
+                Message msg = new() { Type = Message.MessageType.UserList, Data = message };
 
                 foreach (ClientHandler handler in _clientHandlers)
                 {
                     await handler.BroadcastMessage(msg);
+                }
+            }
+        }
+
+        private async void BroadcastFile(Message.MessageType messageType, string fileName, string author = "")
+        {
+            if (_clientHandlers.Count > 0)
+            {
+                Message msg = new() { Type = messageType };
+                msg.Data.Add(fileName);
+
+                foreach (ClientHandler handler in _clientHandlers)
+                {
+                    if (handler.Username != author)
+                    {
+                        await handler.BroadcastMessage(msg);
+                    }
                 }
             }
         }
