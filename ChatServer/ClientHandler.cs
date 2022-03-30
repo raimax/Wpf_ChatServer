@@ -8,12 +8,17 @@ namespace ChatServer
         private readonly NetworkStream _stream;
         public string Username { get; set; } = "";
         public Action<Message.MessageType, string, string> broadcastMessage { get; set; }
+        public Action<ClientHandler> removeClientHandler { get; set; }
 
-        public ClientHandler(TcpClient client, Action<Message.MessageType, string, string> broadcastMessage)
+        public ClientHandler(
+            TcpClient client, 
+            Action<Message.MessageType, string, string> broadcastMessage, 
+            Action<ClientHandler> removeClientHandler)
         {
             _client = client;
             _stream = client.GetStream();
             this.broadcastMessage = broadcastMessage;
+            this.removeClientHandler = removeClientHandler;
             GetUserInfo();
 
             Task.Run(() =>
@@ -68,15 +73,22 @@ namespace ChatServer
         public void Close()
         {
             _client.Close();
-            broadcastMessage(Message.MessageType.Info, $"{Username} left the chat", "");
+            removeClientHandler(this);
         }
 
         public async Task BroadcastMessage(Message message)
         {
             try
             {
-                byte[] replyMessage = Serializer.Serialize(message);
-                await _stream.WriteAsync(replyMessage);
+                if (_stream.CanWrite)
+                {
+                    byte[] replyMessage = Serializer.Serialize(message);
+                    await _stream.WriteAsync(replyMessage);
+                }
+                else
+                {
+                    Close();
+                }
             }
             catch (Exception ex)
             {

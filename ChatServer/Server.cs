@@ -51,7 +51,7 @@ namespace ChatServer
                 {
                     TcpClient client = _server.AcceptTcpClient();
                     Console.WriteLine("Client connected");
-                    ClientHandler clientHandler = new(client, BroadcastMessage);
+                    ClientHandler clientHandler = new(client, BroadcastMessage, RemoveClientHandler);
 
                     BroadcastMessage(Message.MessageType.Info, $"{clientHandler.Username} joined the chat");
 
@@ -104,6 +104,14 @@ namespace ChatServer
                     await handler.BroadcastMessage(msg);
                 }
             }
+        }
+
+        public void RemoveClientHandler(ClientHandler clientHandler)
+        {
+            _clientHandlers.Remove(clientHandler);
+            BroadcastMessage(Message.MessageType.Info, $"{clientHandler.Username} has left the chat");
+            BroadcastOnlineUsers();
+            Console.WriteLine("Client disconnected");
         }
     }
 }
