@@ -51,7 +51,7 @@ namespace ChatServer
                 while (true)
                 {
                     TcpClient client = _server.AcceptTcpClient();
-                    Console.WriteLine("Client connected");
+                    Console.WriteLine($"[{DateTime.Now}] Client connected");
                     ClientHandler clientHandler = new(client, BroadcastMessage, RemoveClientHandler, BroadcastFile);
 
                     BroadcastMessage(Message.MessageType.Info, $"{clientHandler.Username} joined the chat");
@@ -74,6 +74,7 @@ namespace ChatServer
                 Message msg = new();
                 msg.Type = messageType;
                 msg.Data.Add(message);
+                msg.Data.Add(author);
 
                 foreach (ClientHandler handler in _clientHandlers)
                 {
@@ -127,7 +128,7 @@ namespace ChatServer
             _clientHandlers.Remove(clientHandler);
             BroadcastMessage(Message.MessageType.Info, $"{clientHandler.Username} has left the chat");
             BroadcastOnlineUsers();
-            Console.WriteLine("Client disconnected");
+            Console.WriteLine($"[{DateTime.Now}] Client disconnected");
         }
     }
 }
